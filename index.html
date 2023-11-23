@@ -115,7 +115,7 @@
     }
     localStorage.setItem(`callLogData-${request.body.call.sessionId}`, JSON.stringify({
       loggedAt: Date.now(),
-      id: request.body.call.sessionId,
+      id: request.body.call.sessionId, // it can be ticket id to match ticket and call log
     }));
     responseMessage(request, { data: 'ok' });
   }
