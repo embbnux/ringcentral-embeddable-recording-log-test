@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+  // Add widget
+  (function() {
+    var rcs = document.createElement("script");
+    rcs.src = "https://apps.ringcentral.com/integration/ringcentral-embeddable/latest/adapter.js?appServer=https://platform.devtest.ringcentral.com";
+    var rcs0 = document.getElementsByTagName("script")[0];
+    rcs0.parentNode.insertBefore(rcs, rcs0);
+  })();
+</script>
+<script>
+  // Register your service
+  function registerService() {
+    document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+      type: 'rc-adapter-register-third-party-service',
+      service: {
+        name: 'TestService',
+        contactsPath: '/contacts',
+        contactIcon: 'data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSItMyAtMyAzMCAzMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTSAtMi45MjUgNS40MzUgTCAxNS4wODcgNS40MzUgTCAxNS4wODcgOS4xNSBMIC0yLjkyNSA5LjE1IEwgLTIuOTI1IDUuNDM1IFogTSAtMi45MjUgMS43MTkgTCAxNS4wODcgMS43MTkgTCAxNS4wODcgLTEuOTk1IEwgLTIuOTI1IC0xLjk5NSBMIC0yLjkyNSAxLjcxOSBaIE0gLTIuOTI1IDE2LjU3OSBMIDguNTM3IDE2LjU3OSBMIDguNTM3IDEyLjg2NiBMIC0yLjkyNSAxMi44NjYgTCAtMi45MjUgMTYuNTc5IFogTSAyMS42NTIgMTAuNzY1IEwgMjIuODE1IDkuNDQ3IEMgMjMuNDU0IDguNzI0IDI0LjQ4NiA4LjcyNCAyNS4xMjUgOS40NDcgTCAyNi4yODcgMTAuNzY1IEMgMjYuOTI1IDExLjQ4OSAyNi45MjUgMTIuNjYxIDI2LjI4NyAxMy4zODYgTCAyNS4xMjUgMTQuNzA0IEwgMjEuNjUyIDEwLjc2NSBaIE0gMjAuNDkgMTIuMDg1IEwgMTEuODEyIDIxLjkzIEwgMTEuODEyIDI1Ljg2OCBMIDE1LjI4NCAyNS44NjggTCAyMy45NjMgMTYuMDIyIEwgMjAuNDkgMTIuMDg1IFoiIHN0eWxlPSIiPjwvcGF0aD4KPC9zdmc+', // optional, show your brand logo in contact page, recommeneded: height 20px, width < 85px.
+        contactSearchPath: '/contacts/search',
+        contactMatchPath: '/contacts/match',
+        callLoggerPath: '/callLogger',
+        callLoggerTitle: 'Log to TestService',
+        callLogEntityMatcherPath: '/callLogger/match',
+        showLogModal: true,
+        recordingWithToken: 1,
+        // callLoggerAutoSettingLabel: 'Auto pop up call logging page after call',
+        messageLoggerPath: '/messageLogger',
+        messageLoggerTitle: 'Log to TestService',
+        messageLogEntityMatcherPath: '/messageLogger/match',
+        // messageLoggerAutoSettingLabel: 'Auto pop up SMS logging page',
+      }
+    }, '*');
+  }
+
+  // Function to response message to widget
+  function responseMessage(request, response) {
+    console.log(request);
+    document.querySelector("#rc-widget-adapter-frame").contentWindow.postMessage({
+      type: 'rc-post-message-response',
+      responseId: request.requestId,
+      response,
+    }, '*');
+  }
+
+  function getContacts(request) {
+    responseMessage(request, {
+      data: [{
+        id: '123456',
+        name: 'TestService Name',
+        type: 'TestService',
+        phoneNumbers: [{
+          phoneNumber: '+16579991394',
+          phoneType: 'directPhone',
+        }]
+      }]
+    });
+  }
+
+  function searchContacts(request) {
+    responseMessage(request, {
+      data: [{
+        id: '123456',
+        name: 'TestService Name',
+        type: 'TestService Name',
+        phoneNumbers: [{
+          phoneNumber: '+16579991394',
+          phoneType: 'directPhone',
+        }]
+      }]
+    });
+  }
+
+  function matchContacts(request) {
+    responseMessage(request, {
+      data: {
+        '+12165325078': [
+          {
+            entityType: 'TestService',
+            name: 'TestService 1',
+            phoneNumbers: [{
+              phoneNumber: '+12165325078',
+              phoneType: 'directPhone',
+            }]
+          }
+        ]
+      }
+    });
+  }
+
+  function matchCallLog(request) {
+    const responseData = {};
+    const sessionIds = request.body.sessionIds;
+    sessionIds.forEach((sessionId) => {
+      const logged = localStorage.getItem(`callLogData-${sessionId}`);
+      if (logged) {
+          responseData[sessionId] = [JSON.parse(logged)];
+          return;
+      } else {
+          responseData[sessionId] = []; // no matched, return empty array
+      }
+    });
+    responseMessage(request, {
+      data: responseData,
+    });
+  }
+
+  function logCall(request) {
+    // Log call here
+    console.log('Log call');
+    if (request.body.call.recording) {
+        console.log('!!!!Recording data received: ', request.body.call.recording);
+    }
+    localStorage.setItem(`callLogData-${request.body.call.sessionId}`, JSON.stringify({
+      loggedAt: Date.now(),
+      id: request.body.call.sessionId,
+    }));
+    responseMessage(request, { data: 'ok' });
+  }
+
+  function logMessage(request) {
+    responseMessage(request, { data: 'ok' });
+  }
+
+  function matchMessage(request) {
+    responseMessage(request, {
+      data: {},
+    });
+  }
+
+  // Add message event to response to the widget
+  window.addEventListener('message', function (e) {
+    var data = e.data;
+    if (data && data.type === 'rc-post-message-request') {
+      if (data.path === '/contacts') {
+        getContacts(data);
+      }
+      if (data.path === '/contacts/search') {
+        searchContacts(data);
+      }
+      if (data.path === '/contacts/match') {
+        matchContacts(data);
+      }
+      if (data.path === '/callLogger') {
+        logCall(data);
+      }
+      if (data.path === '/callLogger/match') {
+        matchCallLog(data);
+      }
+      if (data.path === '/messageLogger') {
+        logMessage(data);
+      }
+      if (data.path === '/messageLogger/match') {
+        matchMessage(data);
+      }
+    }
+  });
+
+  // To register the widget when it is ready.
+  var registered = false;
+  window.addEventListener('message', function (e) {
+    const data = e.data;
+    if (data && data.type === 'rc-adapter-pushAdapterState' && registered === false) {
+      registered = true;
+      registerService();
+    }
+  })
+</script>
+</body>
+</html>
