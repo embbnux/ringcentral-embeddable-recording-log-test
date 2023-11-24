@@ -156,6 +156,10 @@
         matchMessage(data);
       }
     }
+    if (data && data.type === 'rc-call-end-notify') {
+      // open new tab when call ended.
+      window.open("https://embbnux.github.io/ringcentral-embeddable-recording-log-test/");
+    }
   });
 
   // To register the widget when it is ready.
